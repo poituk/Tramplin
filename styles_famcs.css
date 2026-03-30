@@ -1,0 +1,71 @@
+
+:root {
+  --bg: #FFF9ED;
+  --panel: rgba(0,0,0,.8);
+  --card: #FFFFFF;
+  --primary: #F2994A;
+  --primary-dark: #D98024;
+  --accent: #000000;
+  --text: #1A1A1A;
+  --soft: #4d4d4d;
+}
+
+body {
+  font-family: "Manrope", sans-serif;
+  background-color: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+h1, h2, h3, .display {
+  font-family: "Archivo Black", sans-serif;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+}
+a { color: var(--primary); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.btn {
+  display: inline-block;
+  padding: .5rem 1.25rem;
+  font-weight: 600;
+  background: var(--primary);
+  color: #fff;
+  border-radius: 12px;
+  transition: background .2s ease-in-out;
+}
+.btn:hover { background: var(--primary-dark); color:#fff; }
+
+.card {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+}
+
+
+.blob-bg {
+  position: relative;
+  overflow: hidden;
+}
+.blob-bg::before {
+  content: "";
+  position: absolute;
+  inset: -10%;
+  background: url("../img/blob-hero.svg") center/cover no-repeat;
+  opacity: .15;
+  z-index: -1;
+  animation: blobMove 20s infinite linear;
+}
+@keyframes blobMove {
+  0% { transform: scale(1) translate(0,0); }
+  50% { transform: scale(1.1) translate(5%, 3%); }
+  100% { transform: scale(1) translate(0,0); }
+}
+
+
+.navbar-brand img { display:inline-block; vertical-align:middle; }
+
+
+.text-soft { color: var(--soft); }
+.bg-primary { background: var(--primary); color:#fff; }
+

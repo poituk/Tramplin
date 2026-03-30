@@ -1,0 +1,190 @@
+{% extends 'base.html' %}
+{% block title %}Кабинет соискателя — Трамплин{% endblock %}
+{% block content %}
+<section class="dashboard-header glass">
+  <div>
+    <span class="eyebrow">Центр управления карьерой</span>
+    <h1>{{ student.full_name }}</h1>
+    <p>{{ student.university }} · {{ student.course }} · {{ student.city }}</p>
+    <div class="chip-row">
+      <span class="chip">Приватность: {{ student.privacy_mode }}</span>
+      <span class="chip {% if student.active_search %}success{% endif %}">{{ 'Активный поиск' if student.active_search else 'Инкогнито' }}</span>
+      <span class="chip">XP: {{ student.gamification_points }}</span>
+      <span class="chip {% if github_profile %}success{% endif %}">{{ 'GitHub привязан' if github_profile else 'GitHub не привязан' }}</span>
+    </div>
+  </div>
+  <div class="dashboard-side-card">
+    <div class="metric"><span>Навыки</span><strong>{{ student.skills|length }}</strong></div>
+    <div class="metric"><span>Портфолио</span><strong>{{ 'Активно' if student.portfolio_url else 'Добавить ссылку' }}</strong></div>
+    <div class="metric"><span>События</span><strong>{{ event_registrations|length }}</strong></div>
+  </div>
+</section>
+
+<section class="dashboard-grid two-col">
+  <article class="glass section-card">
+    <div class="section-header"><h2>Настройки профиля</h2><span class="badge">Профиль</span></div>
+    <form method="post" action="{{ url_for('update_student_profile') }}" class="stack-form grid-two">
+      <label>Отображаемое имя<input name="display_name" value="{{ current_user.display_name }}" required></label>
+      <label>ФИО<input name="full_name" value="{{ student.full_name }}" required></label>
+      <label>ВУЗ<input name="university" value="{{ student.university }}" required></label>
+      <label>Курс / статус<input name="course" value="{{ student.course }}" required></label>
+      <label>Город<input name="city" value="{{ student.city }}" required></label>
+      <label>Год выпуска<input name="graduation_year" value="{{ student.graduation_year }}" required></label>
+      <label style="grid-column:1/-1">О себе<textarea name="summary" rows="4" required>{{ student.summary }}</textarea></label>
+      <label style="grid-column:1/-1">Навыки через запятую<input name="skills" value="{{ student.skills | map(attribute='name') | join(', ') }}" placeholder="Python, SQL, Docker"></label>
+      <label>Портфолио / сайт<input name="portfolio_url" value="{{ student.portfolio_url or '' }}" placeholder="https://portfolio.example"></label>
+      <label>Приватность
+        <select name="privacy_mode">
+          <option value="networking" {% if student.privacy_mode == 'networking' %}selected{% endif %}>Открыт для нетворкинга</option>
+          <option value="contacts_only" {% if student.privacy_mode == 'contacts_only' %}selected{% endif %}>Только контакты</option>
+          <option value="incognito" {% if student.privacy_mode == 'incognito' %}selected{% endif %}>Инкогнито</option>
+        </select>
+      </label>
+      <label class="checkbox-line">
+        <input type="checkbox" name="active_search" {% if student.active_search %}checked{% endif %}>
+        <span>Показывать профиль как «в активном поиске»</span>
+      </label>
+      <label style="grid-column:1/-1">Опыт и достижения (каждая строка в формате "Год: событие")
+        <textarea name="timeline_text" rows="6" placeholder="2025: Хакатон по backend\n2024: Стажировка в лаборатории ML">{{ timeline_text_value }}</textarea>
+      </label>
+      <button class="btn primary full" style="grid-column:1/-1">Сохранить профиль</button>
+    </form>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header"><h2>GitHub и внешние ссылки</h2><span class="badge success">GitHub</span></div>
+    <form method="post" action="{{ url_for('connect_github') }}" class="stack-form">
+      <label>GitHub URL<input name="github_url" value="{{ student.github_url or '' }}" placeholder="https://github.com/username"></label>
+      <button class="btn primary">Привязать GitHub</button>
+    </form>
+
+    {% if github_profile %}
+      <div class="github-card">
+        <div class="section-header compact">
+          <div>
+            <h3>@{{ github_profile.username }}</h3>
+            <p>{{ github_profile.summary }}</p>
+          </div>
+          <span class="chip success">{{ github_profile.sync_label }}</span>
+        </div>
+        <div class="recommendations compact-grid">
+          {% for repo in github_profile.repo_cards %}
+          <div class="mini-card static-card">
+            <div>
+              <h3>{{ repo.name }}</h3>
+              <p>{{ repo.description }}</p>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="kanban-card empty">После привязки GitHub в профиле появится блок с ключевыми репозиториями и ускорится доверие со стороны HR.</div>
+    {% endif %}
+
+    <div class="section-header spaced-top"><h2>Подсказки по навыкам</h2><span class="badge">Популярные теги</span></div>
+    <div class="tag-row">
+      {% for tag in suggested_tags[:12] %}<span class="tag">{{ tag.name }}</span>{% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="dashboard-grid two-col">
+  <article class="glass section-card">
+    <div class="section-header"><h2>Динамическое портфолио</h2><span class="badge">Таймлайн</span></div>
+    <div class="timeline">
+      {% for item in timeline %}
+      <div class="timeline-item">
+        <strong>{{ item.year }}</strong>
+        <p>{{ item.text }}</p>
+      </div>
+      {% else %}
+      <div class="kanban-card empty">Добавьте события и проекты в настройках профиля, чтобы показать карьерную динамику.</div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header"><h2>Баланс навыков</h2><span class="badge">Радар навыков</span></div>
+    <canvas id="radarChart" data-points='{{ [student.radar_hard, student.radar_data, student.radar_soft, student.radar_leadership]|tojson }}'></canvas>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header"><h2>Разрыв навыков</h2><span class="badge">Подсказки</span></div>
+    <ul class="clean-list">
+      {% for item in market_insights %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header"><h2>Рекомендации по вакансиям</h2><span class="badge">Мэтчинг</span></div>
+    <div class="recommendations">
+      {% for opportunity, match in recommendations %}
+      <a href="{{ url_for('opportunity_detail', opportunity_id=opportunity.id) }}" class="mini-card">
+        <div>
+          <h3>{{ opportunity.title }}</h3>
+          <p>{{ opportunity.employer.company_name }}</p>
+        </div>
+        <strong class="match-score">{{ match.score }}%</strong>
+      </a>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="dashboard-grid two-col">
+  <article class="glass section-card">
+    <div class="section-header"><h2>Канбан откликов</h2><span class="badge">Этапы откликов</span></div>
+    <div class="board-scroll"><div class="kanban">
+      {% for status in ['wishlist', 'applied', 'invited', 'approved', 'offer', 'rejected'] %}
+        <div class="kanban-col">
+          <h3>{{ status_titles[status] }}</h3>
+          {% for application in kanban[status] %}
+            <div class="kanban-card">
+              <strong>{{ application.opportunity.title }}</strong>
+              <p>{{ application.opportunity.employer.company_name }}</p>
+              <span class="match-score">{{ application.match_score }}%</span>
+            </div>
+          {% else %}
+            <div class="kanban-card empty">Нет карточек</div>
+          {% endfor %}
+        </div>
+      {% endfor %}
+    </div></div>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header"><h2>Мои мероприятия</h2><span class="badge">{{ event_registrations|length }}</span></div>
+    <div class="recommendations">
+      {% for registration in event_registrations %}
+      <a href="{{ url_for('event_detail', event_id=registration.event.id) }}" class="mini-card">
+        <div>
+          <h3>{{ registration.event.title }}</h3>
+          <p>{{ registration.event.starts_at.strftime('%d.%m.%Y %H:%M') }} · {{ registration.event.venue_name }}</p>
+        </div>
+        <span class="chip success">{{ event_status_titles[registration.status] }}</span>
+      </a>
+      {% else %}
+      <div class="kanban-card empty">Пока нет регистраций на мероприятия.</div>
+      {% endfor %}
+    </div>
+
+    <div class="section-header spaced-top"><h2>Профессиональные контакты</h2><span class="badge">Контакты</span></div>
+    <div class="recommendations">
+      {% for contact in student.contacts %}
+      <div class="mini-card static-card">
+        <div>
+          <h3>{{ contact.full_name }}</h3>
+          <p>{{ contact.university }} · {{ contact.course }}</p>
+          <div class="tag-row">
+            {% for skill in contact.skills[:3] %}<span class="tag">{{ skill.name }}</span>{% endfor %}
+          </div>
+        </div>
+      </div>
+      {% else %}
+      <div class="kanban-card empty">Пока нет профессиональных контактов.</div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+{% endblock %}

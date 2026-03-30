@@ -1,0 +1,201 @@
+{% extends 'base.html' %}
+{% block title %}Трамплин — карта возможностей{% endblock %}
+{% block content %}
+<section class="hero glass blob-bg">
+  <div>
+    <span class="eyebrow">Интерактивная карьерная экосистема</span>
+    <h1>Разделяйте карьерные маршруты по смыслу: вакансии отдельно, мероприятия отдельно</h1>
+    <p>Публичный каталог стал понятнее: вакансии, стажировки и мероприятия разделены на самостоятельные сценарии с отдельными картами и синхронизированными списками.</p>
+    <div class="hero-actions">
+      <a href="{{ url_for('register') }}" class="btn primary">Начать бесплатно</a>
+      <a href="{{ url_for('login') }}" class="btn ghost">Войти</a>
+    </div>
+  </div>
+  <div class="hero-stats">
+    <div class="stat-card"><strong>{{ public_cards|length }}</strong><span>активных карточек всего</span></div>
+    <div class="stat-card"><strong>{{ opportunity_cards|length }}</strong><span>вакансий, стажировок и менторств</span></div>
+    <div class="stat-card"><strong>{{ event_cards|length }}</strong><span>мероприятий на отдельной вкладке</span></div>
+  </div>
+</section>
+
+<section class="tabbed-public" data-tab-root data-active-tab="{{ active_tab }}">
+  <div class="tab-switcher glass" role="tablist" aria-label="Переключение каталога">
+    <button type="button" class="tab-button" data-tab-button="opportunities">Вакансии и стажировки <span class="badge">{{ opportunity_cards|length }}</span></button>
+    <button type="button" class="tab-button" data-tab-button="events">Мероприятия <span class="badge success">{{ event_cards|length }}</span></button>
+  </div>
+
+  <div class="tab-panel" data-tab-panel="opportunities">
+    <section class="panel-grid public-layout">
+      <aside class="filters glass">
+        <h2>Фильтры вакансий</h2>
+        <form method="get" class="filter-form">
+          <input type="hidden" name="tab" value="opportunities">
+          <label>Поиск по тексту
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Например: backend, SQL, TechVision">
+          </label>
+          <label>Тип
+            <select name="type">
+              <option value="">Все карьерные карточки</option>
+              <option value="vacancy" {% if selected_type == 'vacancy' %}selected{% endif %}>Вакансии</option>
+              <option value="internship" {% if selected_type == 'internship' %}selected{% endif %}>Стажировки</option>
+              <option value="mentorship" {% if selected_type == 'mentorship' %}selected{% endif %}>Менторство</option>
+            </select>
+          </label>
+          <label>Формат
+            <select name="format">
+              <option value="">Любой</option>
+              <option value="office" {% if selected_format == 'office' %}selected{% endif %}>Офис</option>
+              <option value="hybrid" {% if selected_format == 'hybrid' %}selected{% endif %}>Гибрид</option>
+              <option value="remote" {% if selected_format == 'remote' %}selected{% endif %}>Удалённо</option>
+            </select>
+          </label>
+          <label>Теги / навыки
+            <select name="tag">
+              <option value="">Все теги</option>
+              {% for tag in tags %}
+                <option value="{{ tag.name }}" {% if selected_tag == tag.name %}selected{% endif %}>{{ tag.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>Минимум по доходу
+            <input type="range" name="salary" min="0" max="180000" step="10000" value="{{ min_salary }}" oninput="this.nextElementSibling.value = this.value + ' ₽'">
+            <output>{{ min_salary }} ₽</output>
+          </label>
+          <button class="btn primary full">Применить</button>
+        </form>
+
+        <div class="legend">
+          <span><i class="dot blue"></i> Вакансии</span>
+          <span><i class="dot green"></i> Стажировки</span>
+          <span><i class="dot purple"></i> Менторство</span>
+        </div>
+      </aside>
+
+      <section class="map-section glass">
+        <div class="section-header">
+          <div>
+            <h2>Карта карьерных возможностей</h2>
+            <p>Показывает вакансии, стажировки и менторские слоты. Список справа синхронизирован с текущим окном карты.</p>
+          </div>
+          <div class="chip-row">
+            <span class="chip">Отдельная вкладка</span>
+            <span class="chip">Кластеризация</span>
+            <span class="chip">Синхронизация списка</span>
+          </div>
+        </div>
+        <div id="mapOpportunities" class="map-box" data-map-instance data-map='{{ opportunity_map_payload|tojson }}' data-list-selector="#listViewportOpportunities" data-count-selector="#visibleCountOpportunities"></div>
+      </section>
+
+      <aside class="viewport-list glass">
+        <div class="section-header">
+          <div>
+            <h2>Карточки в текущем окне</h2>
+            <p>Только вакансии и карьерные карточки, которые сейчас видны на карте.</p>
+          </div>
+          <span class="badge" id="visibleCountOpportunities">{{ opportunity_cards|length }}</span>
+        </div>
+
+        <div class="viewport-list-scroll" id="listViewportOpportunities">
+          {% for item in opportunity_cards %}
+            <a class="opportunity-card" href="{{ item.url }}" data-map-card-id="{{ item.id }}">
+              <div class="card-topline">
+                <span class="pill {{ item.type }}">{{ item.type_label }}</span>
+                {% if item.entity_type == 'opportunity' and item.company_id in favorite_company_ids %}<span class="bookmark">★ Избранное</span>{% endif %}
+              </div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.company }} · {{ item.city }}</p>
+              <p class="muted">{{ item.short_description }}</p>
+              <div class="tag-row">
+                {% for tag in item.tags[:4] %}<span class="tag">{{ tag }}</span>{% endfor %}
+              </div>
+              <strong>{{ item.meta_line }}</strong>
+            </a>
+          {% else %}
+            <div class="kanban-card empty">По текущим фильтрам нет вакансий или стажировок.</div>
+          {% endfor %}
+        </div>
+      </aside>
+    </section>
+  </div>
+
+  <div class="tab-panel" data-tab-panel="events">
+    <section class="panel-grid public-layout">
+      <aside class="filters glass">
+        <h2>Фильтры мероприятий</h2>
+        <form method="get" class="filter-form">
+          <input type="hidden" name="tab" value="events">
+          <label>Поиск по тексту
+            <input type="text" name="q" value="{{ search_query }}" placeholder="Например: митап, analytics, networking">
+          </label>
+          <label>Формат события
+            <select name="event_format">
+              <option value="">Любой</option>
+              <option value="offline" {% if selected_event_format == 'offline' %}selected{% endif %}>Оффлайн</option>
+              <option value="online" {% if selected_event_format == 'online' %}selected{% endif %}>Онлайн</option>
+              <option value="hybrid" {% if selected_event_format == 'hybrid' %}selected{% endif %}>Гибрид</option>
+            </select>
+          </label>
+          <label>Теги / темы
+            <select name="tag">
+              <option value="">Все теги</option>
+              {% for tag in tags %}
+                <option value="{{ tag.name }}" {% if selected_tag == tag.name %}selected{% endif %}>{{ tag.name }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <button class="btn primary full">Применить</button>
+        </form>
+
+        <div class="legend">
+          <span><i class="dot red"></i> Оффлайн и онлайн события</span>
+          <span><i class="dot purple"></i> Воркшопы, митапы, карьерные дни</span>
+        </div>
+      </aside>
+
+      <section class="map-section glass">
+        <div class="section-header">
+          <div>
+            <h2>Карта карьерных мероприятий</h2>
+            <p>Отдельная карта для событий: митапы, дни карьеры, воркшопы и встречи с работодателями.</p>
+          </div>
+          <div class="chip-row">
+            <span class="chip success">Только события</span>
+            <span class="chip">Кластеризация</span>
+            <span class="chip">Регистрация из карточки</span>
+          </div>
+        </div>
+        <div id="mapEvents" class="map-box" data-map-instance data-map='{{ event_map_payload|tojson }}' data-list-selector="#listViewportEvents" data-count-selector="#visibleCountEvents"></div>
+      </section>
+
+      <aside class="viewport-list glass">
+        <div class="section-header">
+          <div>
+            <h2>События в текущем окне</h2>
+            <p>Показывает только те мероприятия, которые попали в текущую область карты.</p>
+          </div>
+          <span class="badge success" id="visibleCountEvents">{{ event_cards|length }}</span>
+        </div>
+
+        <div class="viewport-list-scroll" id="listViewportEvents">
+          {% for item in event_cards %}
+            <a class="opportunity-card" href="{{ item.url }}" data-map-card-id="{{ item.id }}">
+              <div class="card-topline">
+                <span class="pill {{ item.type }}">{{ item.type_label }}</span>
+              </div>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.company }} · {{ item.city }}</p>
+              <p class="muted">{{ item.short_description }}</p>
+              <div class="tag-row">
+                {% for tag in item.tags[:4] %}<span class="tag">{{ tag }}</span>{% endfor %}
+              </div>
+              <strong>{{ item.meta_line }}</strong>
+            </a>
+          {% else %}
+            <div class="kanban-card empty">По текущим фильтрам нет мероприятий.</div>
+          {% endfor %}
+        </div>
+      </aside>
+    </section>
+  </div>
+</section>
+{% endblock %}

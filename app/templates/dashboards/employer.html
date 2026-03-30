@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% block title %}Кабинет работодателя — Трамплин{% endblock %}
+{% block content %}
+<section class="dashboard-header glass employer-cover {% if employer.cover_url %}has-cover{% endif %}" {% if employer.cover_url %}style="background-image:linear-gradient(135deg, rgba(5,10,20,.85), rgba(15,23,42,.78)), url('{{ employer.cover_url }}')"{% endif %}>
+  <div>
+    <span class="eyebrow">HR-бренд, найм и карьерные события</span>
+    <h1>{{ employer.company_name }} {% if employer.verified_badge %}<span class="verified">✔ Проверенный работодатель</span>{% endif %}</h1>
+    <p>{{ employer.description }}</p>
+    <div class="chip-row">
+      <span class="chip">{{ employer.industry }}</span>
+      <span class="chip">{{ employer.city }}</span>
+      <span class="chip">{{ employer.hr_title }}</span>
+      <span class="chip {% if can_manage_company %}success{% endif %}">{{ hr_status_titles.get(employer.hr_status, employer.hr_status) }}</span>
+    </div>
+  </div>
+  <div class="dashboard-side-card dark">
+    <div class="metric"><span>Карточки вакансий и менторства</span><strong>{{ employer_opportunities|length }}</strong></div>
+    <div class="metric"><span>Мероприятия</span><strong>{{ employer_events|length }}</strong></div>
+    <div class="metric"><span>Отклики и регистрации</span><strong>{{ hiring_summary.applications_total + hiring_summary.registrations_total }}</strong></div>
+    <div class="metric"><span>Города кандидатов</span><strong>{{ hiring_summary.unique_cities|length }}</strong></div>
+  </div>
+</section>
+
+{% if not can_manage_company %}
+<section class="dashboard-grid">
+  <article class="glass section-card warning-card">
+    <div class="section-header"><h2>Привязка к компании ещё не подтверждена</h2><span class="badge">На проверке</span></div>
+    <p>Ваш HR-аккаунт видит карточку компании, но публикация вакансий и мероприятий станет доступна после одобрения куратора.</p>
+  </article>
+</section>
+{% endif %}
+
+<section class="dashboard-grid two-col">
+  <article class="glass section-card" style="grid-column:1/-1">
+    <div class="section-header"><h2>Конструктор работодателя</h2><span class="badge">Два сценария</span></div>
+    <div class="tabbed-public" data-tab-root data-active-tab="{{ constructor_tab }}">
+      <div class="tab-switcher glass slim-switcher" role="tablist" aria-label="Переключение конструктора HR">
+        <button type="button" class="tab-button" data-tab-button="opportunity">Вакансии и стажировки</button>
+        <button type="button" class="tab-button" data-tab-button="event">Мероприятия</button>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="opportunity">
+        <div class="section-header compact">
+          <div>
+            <h3>Конструктор вакансий</h3>
+            <p>Отдельный поток создания для вакансий, стажировок и менторских программ.</p>
+          </div>
+          <span class="badge">Публикация вакансий</span>
+        </div>
+        <form class="stack-form grid-two" method="post" action="{{ url_for('create_opportunity') }}">
+          <label>Название<input name="title" required></label>
+          <label>Тип
+            <select name="opportunity_type">
+              <option value="vacancy">Вакансия</option>
+              <option value="internship">Стажировка</option>
+              <option value="mentorship">Менторство</option>
+            </select>
+          </label>
+          <label style="grid-column:1/-1">Описание<textarea name="short_description" rows="4" required></textarea></label>
+          <label>Формат
+            <select name="work_format"><option value="office">Офис</option><option value="hybrid">Гибрид</option><option value="remote">Удаленно</option></select>
+          </label>
+          <label>Город<input name="city" value="{{ employer.city }}"></label>
+          <label>Адрес<input name="address" value="{{ employer.office_address or employer.city }}"></label>
+          <label>Широта<input id="opportunity-latitude" name="latitude" value="55.7512"></label>
+          <label>Долгота<input id="opportunity-longitude" name="longitude" value="37.6184"></label>
+          <label>Зарплата от<input name="salary_min" value="70000"></label>
+          <label>Зарплата до<input name="salary_max" value="110000"></label>
+          <label>Тип занятости<input name="employment_type" value="full-time"></label>
+          <label>Уровень<input name="level" value="Intern"></label>
+          <div class="map-picker-card" style="grid-column:1/-1">
+            <div class="section-header compact">
+              <div>
+                <h3>Точка вакансии на карте</h3>
+                <p>Кликните по карте, чтобы автоматически заполнить широту и долготу.</p>
+              </div>
+              <span class="badge">Выбор точки</span>
+            </div>
+            <div class="map-box map-picker-canvas" data-map-picker data-lat-input="#opportunity-latitude" data-lng-input="#opportunity-longitude"></div>
+            <p class="muted" data-map-picker-status>Координаты можно выбрать кликом или ввести вручную.</p>
+          </div>
+          <label style="grid-column:1/-1">Теги через запятую<input name="tags" placeholder="Python, Docker, SQL"></label>
+          <button class="btn primary full" style="grid-column:1/-1">Создать вакансию и отправить на модерацию</button>
+        </form>
+      </div>
+
+      <div class="tab-panel" data-tab-panel="event">
+        <div class="section-header compact">
+          <div>
+            <h3>Конструктор мероприятий</h3>
+            <p>Отдельный поток для событий: офлайн, онлайн и гибридные карьерные активности.</p>
+          </div>
+          <span class="badge success">Карточка события</span>
+        </div>
+        <form class="stack-form grid-two" method="post" action="{{ url_for('create_event') }}">
+          <label>Название<input name="title" required></label>
+          <label>Формат события
+            <select name="event_format"><option value="offline">Оффлайн</option><option value="online">Онлайн</option><option value="hybrid">Гибрид</option></select>
+          </label>
+          <label style="grid-column:1/-1">Описание<textarea name="short_description" rows="4" required></textarea></label>
+          <label>Площадка / сцена<input name="venue_name" value="TechVision Arena" required></label>
+          <label>Город<input name="city" value="{{ employer.city }}"></label>
+          <label>Адрес<input name="address" value="{{ employer.office_address or employer.city }}"></label>
+          <label>Широта<input id="event-latitude" name="latitude" value="55.7512"></label>
+          <label>Долгота<input id="event-longitude" name="longitude" value="37.6184"></label>
+          <label>Начало<input type="datetime-local" name="starts_at" required></label>
+          <label>Окончание<input type="datetime-local" name="ends_at" required></label>
+          <label>Дедлайн регистрации<input type="date" name="registration_deadline" required></label>
+          <label>Вместимость<input name="capacity" value="150"></label>
+          <label>Целевая аудитория<input name="target_audience" value="Студенты и выпускники"></label>
+          <label>Спикер / ведущий<input name="speaker_name" value="Команда найма"></label>
+          <label>Контактный email<input name="contact_email" value="{{ verification.corporate_email }}"></label>
+          <label>URL регистрации<input name="registration_url" value="{{ employer.website }}"></label>
+          <label>Стоимость участия<input name="participation_cost" value="Бесплатно"></label>
+          <div class="map-picker-card" style="grid-column:1/-1">
+            <div class="section-header compact">
+              <div>
+                <h3>Точка мероприятия на карте</h3>
+                <p>Кликните по карте, чтобы поставить маркер места проведения.</p>
+              </div>
+              <span class="badge success">Точка на карте</span>
+            </div>
+            <div class="map-box map-picker-canvas" data-map-picker data-lat-input="#event-latitude" data-lng-input="#event-longitude"></div>
+            <p class="muted" data-map-picker-status>Маркер можно перетаскивать, а поля координат обновляются автоматически.</p>
+          </div>
+          <label style="grid-column:1/-1">Теги / темы через запятую<input name="tags" placeholder="Backend, Career, Networking"></label>
+          <button class="btn primary full" style="grid-column:1/-1">Создать мероприятие и отправить на модерацию</button>
+        </form>
+      </div>
+    </div>
+  </article>
+</section>
+
+<section class="dashboard-grid two-col">
+  <article class="glass section-card">
+    <div class="section-header"><h2>Поток найма</h2><span class="badge">Отклики и регистрации</span></div>
+    <div class="stats-inline-grid">
+      <div class="mini-card static-card"><strong>{{ hiring_summary.applications_total }}</strong><p>Откликов на вакансии и менторство</p></div>
+      <div class="mini-card static-card"><strong>{{ hiring_summary.registrations_total }}</strong><p>Регистраций на мероприятия</p></div>
+      <div class="mini-card static-card"><strong>{{ hiring_summary.approved_people }}</strong><p>Одобрено рекрутёром</p></div>
+      <div class="mini-card static-card"><strong>{{ hiring_summary.unique_cities|join(', ') if hiring_summary.unique_cities else '—' }}</strong><p>Города участников</p></div>
+    </div>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header"><h2>Команда работодателя</h2><span class="badge">Команда HR</span></div>
+    <div class="table-like">
+      {% for member in team_members %}
+      <div class="table-row four-col compact-row">
+        <div>
+          <strong>{{ member.user.display_name }}</strong>
+          <p>{{ member.user.email }}</p>
+        </div>
+        <div>{{ member.hr_title }}</div>
+        <div><span class="chip {% if member.hr_status in ['owner', 'approved'] %}success{% endif %}">{{ hr_status_titles.get(member.hr_status, member.hr_status) }}</span></div>
+        <div class="muted">ИНН: {{ member.company_inn or '—' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="dashboard-grid two-col">
+  <article class="glass section-card">
+    <div class="section-header"><h2>Карточки компании</h2><span class="badge">Выбор сценария</span></div>
+    <div class="recommendations">
+      {% for item in employer_opportunities %}
+      <a href="{{ url_for('dashboard', entity='opportunity', item_id=item.id) }}" class="mini-card {% if selected_entity == 'opportunity' and selected_opportunity and selected_opportunity.id == item.id %}selected{% endif %}">
+        <div>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.city }} · {{ type_labels.get(item.opportunity_type, item.opportunity_type) }}</p>
+          <small class="muted">Откликов: {{ item.applications|length }}</small>
+        </div>
+        <span class="chip">{{ item.moderation_status }}</span>
+      </a>
+      {% endfor %}
+      {% for item in employer_events %}
+      <a href="{{ url_for('dashboard', entity='event', item_id=item.id) }}" class="mini-card {% if selected_entity == 'event' and selected_event and selected_event.id == item.id %}selected{% endif %}">
+        <div>
+          <h3>{{ item.title }}</h3>
+          <p>{{ item.city }} · мероприятие</p>
+          <small class="muted">Заявок: {{ item.registrations|length }}</small>
+        </div>
+        <span class="chip success">{{ item.moderation_status }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header"><h2>Профиль компании</h2><span class="badge success">Данные компании</span></div>
+    <ul class="clean-list">
+      <li><strong>Корпоративная почта:</strong> {{ verification.corporate_email }}</li>
+      <li><strong>ИНН:</strong> {{ verification.inn }}</li>
+      <li><strong>Статус компании:</strong> {{ verification.legal_status }}</li>
+      <li><strong>Доступ в кабинет:</strong> аккаунт работодателя создаётся сразу после регистрации.</li>
+      <li><strong>Права рекрутёра:</strong> статусы кандидатов и участников мероприятий меняются из карточек на доске.</li>
+    </ul>
+  </article>
+</section>
+
+<section class="dashboard-grid">
+  <article class="glass section-card">
+    {% if selected_entity == 'event' and selected_event %}
+      <div class="section-header">
+        <div>
+          <h2>Участники мероприятия</h2>
+          <p>Карточка: <strong>{{ selected_event.title }}</strong></p>
+        </div>
+        <span class="badge">{{ selected_event.registrations|length }}</span>
+      </div>
+      <div class="board-scroll">
+        <div class="kanban wide-board">
+          {% for column in event_board %}
+          <div class="kanban-col">
+            <div class="card-topline"><h3>{{ column.title }}</h3><span class="chip">{{ column.count }}</span></div>
+            {% for card in column.cards %}
+            <div class="kanban-card recruiter-card">
+              <div>
+                <strong>{{ card.name }}</strong>
+                <p>{{ card.city }} · {{ card.university }} · {{ card.course }}</p>
+              </div>
+              <div class="tag-row">
+                {% for skill in card.skills %}<span class="tag">{{ skill }}</span>{% endfor %}
+              </div>
+              <p class="muted">{{ card.note }}</p>
+              <form method="post" action="{{ url_for('update_event_registration_status', registration_id=card.registration.id) }}" class="stack-form inline-stack compact-form">
+                <label>Статус
+                  <select name="status">
+                    {% for key, title in event_status_titles.items() %}
+                    <option value="{{ key }}" {% if card.registration.status == key %}selected{% endif %}>{{ title }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <div class="quick-actions compact-actions">
+                  <button class="btn ghost" type="submit">Сохранить изменения</button>
+                </div>
+              </form>
+            </div>
+            {% else %}
+            <div class="kanban-card empty">Пока нет участников на этом этапе.</div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% elif selected_opportunity %}
+      <div class="section-header">
+        <div>
+          <h2>Найм по карточке</h2>
+          <p>Карточка: <strong>{{ selected_opportunity.title }}</strong></p>
+        </div>
+        <span class="badge">{{ selected_opportunity.applications|length }}</span>
+      </div>
+      <div class="board-scroll">
+        <div class="kanban wide-board">
+          {% for column in candidate_board %}
+          <div class="kanban-col">
+            <div class="card-topline"><h3>{{ column.title }}</h3><span class="chip">{{ column.count }}</span></div>
+            {% for card in column.cards %}
+            <div class="kanban-card recruiter-card">
+              <div class="card-topline">
+                <div>
+                  <strong>{{ card.name }}</strong>
+                  <p>{{ card.city }} · {{ card.university }} · {{ card.course }}</p>
+                </div>
+                <span class="match-score">{{ card.match_score }}%</span>
+              </div>
+              <div class="tag-row">
+                {% for skill in card.skills %}<span class="tag">{{ skill }}</span>{% endfor %}
+              </div>
+              <p class="muted">{{ card.note }}</p>
+              <form method="post" action="{{ url_for('update_application_status', application_id=card.application.id) }}" class="stack-form compact-form">
+                <label>Статус отклика
+                  <select name="status">
+                    {% for key, title in status_titles.items() %}
+                    <option value="{{ key }}" {% if card.application.status == key %}selected{% endif %}>{{ title }}</option>
+                    {% endfor %}
+                  </select>
+                </label>
+                <label>Заметка HR<textarea name="hr_private_note" rows="2">{{ card.application.hr_private_note }}</textarea></label>
+                <div class="quick-actions compact-actions">
+                  <button class="btn ghost" type="submit">Сохранить изменения</button>
+                </div>
+              </form>
+            </div>
+            {% else %}
+            <div class="kanban-card empty">Нет кандидатов для этого этапа.</div>
+            {% endfor %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% else %}
+      <div class="section-header"><h2>Активность</h2><span class="badge">Пусто</span></div>
+      <div class="kanban-card empty">Создайте вакансию, менторство или мероприятие, чтобы увидеть кандидатов и регистрации.</div>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

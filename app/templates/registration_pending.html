@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+{% block title %}Подтверждение регистрации — Трамплин{% endblock %}
+{% block content %}
+<section class="auth-wrapper">
+  <div class="auth-card glass wide registration-pending">
+    <span class="eyebrow">Регистрация работодателя</span>
+    <h1>Введите код из письма</h1>
+    <p class="lead">Мы отправили код подтверждения на <strong>{{ flow.contact_email }}</strong>. Введите его ниже, чтобы активировать компанию и открыть кабинет рекрутёра.</p>
+
+    <div class="pending-grid">
+      <div class="mini-card">
+        <strong>1. Проверьте почту</strong>
+        <p>Письмо приходит на адрес компании, указанный при регистрации.</p>
+      </div>
+      <div class="mini-card">
+        <strong>2. Введите код на сайте</strong>
+        <p>Код одноразовый и подтверждает регистрацию работодателя.</p>
+      </div>
+    </div>
+
+    <div class="tag-row">
+      <span class="badge {% if flow.status == 'completed' %}success{% endif %}" id="registrationStatus">Статус: {{ status_label }}</span>
+      <span class="chip">Email: {{ flow.contact_email }}</span>
+    </div>
+
+    <form method="post" action="{{ url_for('verify_registration_code', verification_code=flow.verification_code) }}" class="stack-form inline-verify-form">
+      <label>Код подтверждения
+        <input type="text" name="email_code" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="Например, 482913" {% if flow.status == 'completed' %}disabled{% endif %}>
+      </label>
+      <button class="btn primary" {% if flow.status == 'completed' %}disabled{% endif %}>Подтвердить регистрацию</button>
+    </form>
+
+    <div class="section-card glass">
+      <div class="section-header">
+        <div>
+          <h2>Повторная отправка</h2>
+          <p>Если письмо не пришло сразу, можно отправить код повторно и продолжить подтверждение без Telegram.</p>
+        </div>
+      </div>
+      <div class="quick-actions">
+        <form method="post" action="{{ url_for('resend_registration_email', verification_code=flow.verification_code) }}">
+          <button class="btn ghost">Отправить код ещё раз</button>
+        </form>
+        <a href="{{ url_for('login') }}" class="btn ghost">Ко входу</a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const statusEl = document.getElementById('registrationStatus');
+  const statusUrl = {{ url_for('registration_status', verification_code=flow.verification_code) | tojson }};
+  async function pollStatus() {
+    try {
+      const response = await fetch(statusUrl, { headers: { 'Accept': 'application/json' } });
+      if (!response.ok) return;
+      const payload = await response.json();
+      statusEl.textContent = `Статус: ${payload.status_label}`;
+      statusEl.classList.toggle('success', payload.status === 'completed');
+    } catch (err) {}
+  }
+  pollStatus();
+  setInterval(pollStatus, 5000);
+});
+</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f2994a">
+  <title>{% block title %}Трамплин{% endblock %}</title>
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <div class="page-glow page-glow-left" aria-hidden="true"></div>
+  <div class="page-glow page-glow-right" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <header class="topbar glass">
+      <a href="{{ url_for('index') }}" class="brand" aria-label="Трамплин">
+        <span class="brand-mark">
+          <img src="{{ url_for('static', filename='famcs-logo-color.png') }}" alt="Логотип Трамплин">
+        </span>
+        <span class="brand-copy">
+          <strong>Трамплин</strong>
+          <small>Карьера как маршрут</small>
+        </span>
+      </a>
+      <nav class="topnav">
+        <a href="{{ url_for('index') }}">Карта</a>
+        {% if current_user.is_authenticated %}
+          <a href="{{ url_for('dashboard') }}">Кабинет</a>
+          <a href="{{ url_for('profile_settings') }}">Профиль</a>
+          <a href="{{ url_for('logout') }}" class="btn ghost">Выйти</a>
+        {% else %}
+          <a href="{{ url_for('login') }}" class="btn ghost">Войти</a>
+          <a href="{{ url_for('register') }}" class="btn primary">Регистрация</a>
+        {% endif %}
+      </nav>
+    </header>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <main>
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

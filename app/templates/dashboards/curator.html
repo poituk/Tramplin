@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+{% block title %}Кабинет куратора — Трамплин{% endblock %}
+{% block content %}
+<section class="dashboard-header glass">
+  <div>
+    <span class="eyebrow">Режим куратора платформы</span>
+    <h1>{{ curator.title }}</h1>
+    <p>{{ curator.organization }}</p>
+    <div class="chip-row">
+      <span class="chip success">{{ 'Главный администратор' if curator.is_super_admin else 'Куратор' }}</span>
+      <span class="chip">Премодерация</span>
+      <span class="chip">Верификация компаний</span>
+      <span class="chip">Управление ролями</span>
+      <a class="btn ghost compact-btn" href="{{ url_for('profile_settings') }}">Настроить профиль</a>
+    </div>
+  </div>
+  <div class="dashboard-side-card">
+    <div class="metric"><span>Пользователи</span><strong>{{ users|length }}</strong></div>
+    <div class="metric"><span>Очередь</span><strong>{{ moderation_items|selectattr('status', 'equalto', 'pending')|list|length }}</strong></div>
+    <div class="metric"><span>Заблокировано</span><strong>{{ users|selectattr('is_banned')|list|length }}</strong></div>
+  </div>
+</section>
+
+<section class="dashboard-grid two-col">
+  <article class="glass section-card">
+    <div class="section-header"><h2>Очередь премодерации</h2><span class="badge">Новые заявки</span></div>
+    <div class="table-like">
+      {% for item in moderation_items %}
+      <div class="table-row vertical-row">
+        <div>
+          <strong>{{ item.title }}</strong>
+          <p>{{ item.entity_type }} · {{ item.submitted_by }}</p>
+          {% if item.rejection_reason %}<p class="muted">{{ item.rejection_reason }}</p>{% endif %}
+        </div>
+        <div><span class="chip {% if item.status == 'approved' %}success{% endif %}">{{ item.status }}</span></div>
+        <form method="post" action="{{ url_for('moderate_item', item_id=item.id) }}" class="row-actions wrap-actions">
+          <input type="text" name="reason" placeholder="Причина отклонения">
+          <button class="btn ghost" name="action" value="approve">Одобрить</button>
+          <button class="btn ghost danger" name="action" value="reject">Отклонить</button>
+        </form>
+      </div>
+      {% else %}
+      <div class="kanban-card empty">Очередь премодерации пуста.</div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header"><h2>Аналитический дашборд</h2><span class="badge">Аналитика</span></div>
+    <canvas id="typeChart" data-series='{{ analytics.by_type|tojson }}'></canvas>
+    <canvas id="skillsChart" data-series='{{ analytics.top_skills|tojson }}'></canvas>
+  </article>
+</section>
+
+<section class="dashboard-grid two-col">
+  <article class="glass section-card">
+    <div class="section-header"><h2>Связка HR ↔ компания</h2><span class="badge">Связка компаний</span></div>
+    <div class="table-like">
+      {% for employer in employer_profiles %}
+      <div class="table-row vertical-row">
+        <div>
+          <strong>{{ employer.company_name }}</strong>
+          <p>{{ employer.user.display_name }} · {{ employer.user.email }}</p>
+        </div>
+        <div>{{ employer.hr_title }}</div>
+        <div><span class="chip {% if employer.hr_status in ['owner', 'approved'] %}success{% endif %}">{{ hr_status_titles.get(employer.hr_status, employer.hr_status) }}</span></div>
+        <div class="muted">ИНН: {{ employer.company_inn or '—' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header"><h2>Опубликованные и скрытые вакансии</h2><span class="badge">Видимость</span></div>
+    <div class="table-like">
+      {% for opportunity in manageable_opportunities %}
+      <div class="table-row admin-user-row">
+        <div>
+          <strong>{{ opportunity.title }}</strong>
+          <p>{{ opportunity.employer.company_name }} · {{ opportunity.city }}</p>
+        </div>
+        <div><span class="chip {% if opportunity.moderation_status == 'approved' %}success{% endif %}">{{ opportunity.moderation_status }}</span></div>
+        <div><span class="chip {% if opportunity.is_published %}success{% endif %}">{{ 'В выдаче' if opportunity.is_published else 'Скрыта' }}</span></div>
+        <div class="admin-actions-cell">
+          {% if opportunity.moderation_status == 'approved' %}
+          <form method="post" action="{{ url_for('toggle_opportunity_visibility', opportunity_id=opportunity.id) }}">
+            <button class="btn ghost {% if opportunity.is_published %}danger{% endif %}" name="action" value="{{ 'hide' if opportunity.is_published else 'publish' }}">
+              {{ 'Снять с публикации' if opportunity.is_published else 'Вернуть в публикацию' }}
+            </button>
+          </form>
+          {% else %}
+          <div class="muted">Сначала нужна модерация</div>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="kanban-card empty">Вакансий пока нет.</div>
+      {% endfor %}
+    </div>
+  </article>
+</section>
+
+<section class="glass section-card">
+  <div class="section-header"><h2>Управление пользователями</h2><span class="badge">Роли и доступ</span></div>
+  <div class="table-like">
+    {% for user in users %}
+    <div class="table-row admin-user-row">
+      <div>
+        <strong>{{ user.display_name }}</strong>
+        <p>{{ user.email }}</p>
+      </div>
+      <div>
+        <form method="post" action="{{ url_for('update_user_role', user_id=user.id) }}" class="inline-admin-form">
+          <select name="role">
+            <option value="student" {% if user.role == 'student' %}selected{% endif %}>Соискатель</option>
+            <option value="employer" {% if user.role == 'employer' %}selected{% endif %}>Работодатель</option>
+            <option value="curator" {% if user.role == 'curator' %}selected{% endif %}>Куратор</option>
+          </select>
+          <button class="btn ghost">Сменить роль</button>
+        </form>
+      </div>
+      <div>{% if user.is_banned %}<span class="chip danger-chip">Заблокирован</span>{% else %}<span class="chip success">Активен</span>{% endif %}</div>
+      <div class="admin-actions-cell">
+        <div class="muted">Создан {{ user.created_at.strftime('%d.%m.%Y') }}</div>
+        {% if user.id != current_user.id %}
+        <form method="post" action="{{ url_for('toggle_user_ban', user_id=user.id) }}">
+          <button class="btn ghost {% if not user.is_banned %}danger{% endif %}" name="action" value="{{ 'unban' if user.is_banned else 'ban' }}">
+            {{ 'Разблокировать' if user.is_banned else 'Заблокировать' }}
+          </button>
+        </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

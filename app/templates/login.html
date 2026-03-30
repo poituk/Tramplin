@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+{% block title %}Вход — Трамплин{% endblock %}
+{% block content %}
+<section class="auth-wrapper">
+  <div class="auth-card glass narrow">
+    <span class="eyebrow">Добро пожаловать</span>
+    <h1>Вход в аккаунт</h1>
+    <p>Авторизуйтесь, чтобы открыть личный кабинет, продолжить отклики и управлять своими карьерными карточками. Новые аккаунты создаются сразу после регистрации без дополнительного подтверждения.</p>
+    <form method="post" class="stack-form">
+      <label>Email<input type="email" name="email" required></label>
+      <label>Пароль<input type="password" name="password" required></label>
+      <button class="btn primary full">Войти</button>
+    </form>
+    <div class="demo-logins">
+      <strong>Демо-аккаунты для входа</strong>
+      <span>student@tramplin.demo / demo1234</span>
+      <span>hr@techvision.demo / demo1234</span>
+      <span>recruiter@techvision.demo / demo1234</span>
+      <span>admin@tramplin.demo / demo1234</span>
+    </div>
+    <div class="form-hint-card">
+      <strong>Ещё нет профиля?</strong>
+      <p>Создайте аккаунт соискателя или работодателя и сразу переходите к работе с платформой.</p>
+      <a href="{{ url_for('register') }}" class="btn ghost">Перейти к регистрации</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

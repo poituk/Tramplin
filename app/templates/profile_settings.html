@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}Настройки профиля — Трамплин{% endblock %}
+{% block content %}
+<section class="dashboard-header glass">
+  <div>
+    <span class="eyebrow">Личный профиль</span>
+    <h1>Настройки профиля</h1>
+    <p>Обновляйте данные аккаунта, чтобы кабинет, карточки и рекомендации отображались корректно.</p>
+    <div class="chip-row">
+      <span class="chip">Роль: {{ 'Соискатель' if current_user.role == 'student' else 'Работодатель' if current_user.role == 'employer' else 'Куратор' }}</span>
+      <span class="chip">{{ 'Карьерный профиль' if current_user.role == 'student' else 'Корпоративный кабинет' if current_user.role == 'employer' else 'Панель модерации' }}</span>
+    </div>
+  </div>
+  <div class="dashboard-side-card">
+    <div class="metric"><span>Имя в системе</span><strong>{{ current_user.display_name }}</strong></div>
+    <div class="metric"><span>Профиль</span><strong>Можно редактировать</strong></div>
+    <div class="metric"><span>Статус</span><strong>{{ 'Активен' if current_user.is_active_account else 'Выключен' }}</strong></div>
+  </div>
+</section>
+
+<section class="dashboard-grid two-col">
+  <article class="glass section-card">
+    <div class="section-header">
+      <h2>Основные данные</h2>
+      <span class="badge">Редактирование</span>
+    </div>
+    <form class="stack-form grid-two" method="post">
+      <label>Отображаемое имя
+        <input name="display_name" value="{{ form.display_name }}" required>
+      </label>
+
+      {% if current_user.role == 'student' %}
+        <label>Полное имя
+          <input name="full_name" value="{{ form.full_name }}" required>
+        </label>
+        <label>Университет
+          <input name="university" value="{{ form.university }}" required>
+        </label>
+        <label>Год выпуска
+          <input name="graduation_year" type="number" value="{{ form.graduation_year }}">
+        </label>
+        <label>Курс
+          <input name="course" value="{{ form.course }}" required>
+        </label>
+        <label>Город
+          <input name="city" value="{{ form.city }}" required>
+        </label>
+        <label>Режим приватности
+          <select name="privacy_mode">
+            <option value="networking" {% if form.privacy_mode == 'networking' %}selected{% endif %}>Открыт для нетворкинга</option>
+            <option value="contacts_only" {% if form.privacy_mode == 'contacts_only' %}selected{% endif %}>Только контакты</option>
+            <option value="incognito" {% if form.privacy_mode == 'incognito' %}selected{% endif %}>Инкогнито</option>
+          </select>
+        </label>
+        <label style="grid-column:1/-1">О себе
+          <textarea name="summary" rows="5">{{ form.summary }}</textarea>
+        </label>
+        <label>GitHub
+          <input name="github_url" value="{{ form.github_url }}" placeholder="https://github.com/...">
+        </label>
+        <label>Портфолио
+          <input name="portfolio_url" value="{{ form.portfolio_url }}" placeholder="https://...">
+        </label>
+        <label style="grid-column:1/-1">Навыки через запятую
+          <input name="skills" value="{{ form.skills }}" placeholder="Python, SQL, FastAPI">
+        </label>
+        <label>Hard skills
+          <input name="radar_hard" type="number" min="0" max="100" value="{{ form.radar_hard }}">
+        </label>
+        <label>Data skills
+          <input name="radar_data" type="number" min="0" max="100" value="{{ form.radar_data }}">
+        </label>
+        <label>Soft skills
+          <input name="radar_soft" type="number" min="0" max="100" value="{{ form.radar_soft }}">
+        </label>
+        <label>Leadership
+          <input name="radar_leadership" type="number" min="0" max="100" value="{{ form.radar_leadership }}">
+        </label>
+        <label class="checkbox-field" style="grid-column:1/-1">
+          <input type="checkbox" name="active_search" {% if form.active_search %}checked{% endif %}>
+          <span>Показывать, что я в активном поиске</span>
+        </label>
+      {% elif current_user.role == 'employer' %}
+        <label>Название компании
+          <input name="company_name" value="{{ form.company_name }}" required>
+        </label>
+        <label>Юридическое название
+          <input name="legal_name" value="{{ form.legal_name }}">
+        </label>
+        <label>Сайт
+          <input name="website" value="{{ form.website }}" placeholder="https://...">
+        </label>
+        <label>Соцсети
+          <input name="socials" value="{{ form.socials }}" placeholder="https://t.me/...">
+        </label>
+        <label>Город
+          <input name="city" value="{{ form.city }}" required>
+        </label>
+        <label>Индустрия
+          <input name="industry" value="{{ form.industry }}">
+        </label>
+        <label>Адрес офиса
+          <input name="office_address" value="{{ form.office_address }}">
+        </label>
+        <label>ИНН
+          <input name="inn" value="{{ form.inn }}">
+        </label>
+        <label>Обложка компании
+          <input name="cover_url" value="{{ form.cover_url }}" placeholder="https://...">
+        </label>
+        <label>Фото офиса
+          <input name="office_photo_url" value="{{ form.office_photo_url }}" placeholder="https://...">
+        </label>
+        <label style="grid-column:1/-1">Описание компании
+          <textarea name="company_description" rows="6">{{ form.company_description }}</textarea>
+        </label>
+      {% else %}
+        <label>Должность в системе
+          <input name="curator_title" value="{{ form.curator_title }}" required>
+        </label>
+        <label>Организация
+          <input name="organization" value="{{ form.organization }}" required>
+        </label>
+      {% endif %}
+
+      <button class="btn primary full" style="grid-column:1/-1">Сохранить профиль</button>
+    </form>
+  </article>
+
+  <article class="glass section-card">
+    <div class="section-header">
+      <h2>Подсказки</h2>
+      <span class="badge">Полезно</span>
+    </div>
+    {% if current_user.role == 'student' %}
+      <ul class="clean-list">
+        <li>Чем полнее навыки и summary, тем точнее рекомендации и мэтчинг.</li>
+        <li>GitHub и портфолио сразу подхватываются в вашем кабинете.</li>
+        <li>Параметры Hard / Data / Soft / Leadership обновляют радар на дашборде.</li>
+      </ul>
+    {% elif current_user.role == 'employer' %}
+      <ul class="clean-list">
+        <li>Обновлённое описание компании видно на публичных карточках и в кабинете HR.</li>
+        <li>После одобрения вакансии её можно снимать с публикации из админки.</li>
+        <li>ИНН и корпоративные данные остаются привязанными к верификации компании.</li>
+      </ul>
+    {% else %}
+      <ul class="clean-list">
+        <li>Здесь можно обновить данные профиля администратора без правок базы вручную.</li>
+        <li>Очередь модерации теперь показывает только pending-элементы.</li>
+        <li>Опубликованные вакансии можно скрыть и вернуть обратно из админ-панели.</li>
+      </ul>
+    {% endif %}
+  </article>
+</section>
+{% endblock %}

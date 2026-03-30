@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+{% block title %}{{ event.title }} — Трамплин{% endblock %}
+{% block content %}
+<section class="detail-hero glass">
+  <div>
+    <div class="chip-row">
+      <span class="pill event">Мероприятие</span>
+      <span class="chip">{{ format_labels.get(event.event_format, event.event_format) }}</span>
+      <span class="chip">{{ event.city }}</span>
+    </div>
+    <h1>{{ event.title }}</h1>
+    <p>{{ event.employer.company_name }} · {{ event.venue_name }}</p>
+    <p class="lead">{{ event.short_description }}</p>
+    <div class="tag-row">
+      {% for tag in event.tags %}<span class="tag">{{ tag.name }}</span>{% endfor %}
+    </div>
+  </div>
+  <div class="salary-card">
+    <strong>{{ event.starts_at.strftime('%d.%m.%Y %H:%M') }} — {{ event.ends_at.strftime('%H:%M') }}</strong>
+    <span>Регистрация до: {{ event.registration_deadline.strftime('%d.%m.%Y') }}</span>
+    <span>Свободных мест: {% if event.capacity %}{{ seats_left }} / {{ event.capacity }}{% else %}без ограничений{% endif %}</span>
+    <span>Стоимость: {{ event.participation_cost }}</span>
+  </div>
+</section>
+
+<section class="detail-grid">
+  <article class="glass detail-card">
+    <h2>Программа и логистика</h2>
+    <p>{{ event.short_description }}</p>
+    <ul class="clean-list">
+      <li><strong>Организатор:</strong> {{ event.employer.company_name }}</li>
+      <li><strong>Формат:</strong> {{ format_labels.get(event.event_format, event.event_format) }}</li>
+      <li><strong>Площадка:</strong> {{ event.venue_name }}</li>
+      <li><strong>Адрес:</strong> {{ event.address or 'Онлайн' }}</li>
+      <li><strong>Целевая аудитория:</strong> {{ event.target_audience }}</li>
+      <li><strong>Спикер:</strong> {{ event.speaker_name }}</li>
+      <li><strong>Контакт:</strong> {{ event.contact_email or event.employer.user.email }}</li>
+      <li><strong>Внешняя регистрация:</strong> {{ event.registration_url or 'не требуется' }}</li>
+    </ul>
+    {% if current_user.is_authenticated and current_user.role == 'student' %}
+    <form method="post" action="{{ url_for('register_event', event_id=event.id) }}" class="stack-form">
+      <label>Комментарий для организатора<textarea name="note" rows="3" placeholder="Например, хочу получить фидбек по резюме.">{{ registration.note if registration else '' }}</textarea></label>
+      <button class="btn primary">{% if registration %}Обновить регистрацию{% else %}Зарегистрироваться{% endif %}</button>
+    </form>
+    {% endif %}
+  </article>
+
+  <aside class="glass detail-card accent-border">
+    <h2>Статус участия</h2>
+    {% if registration %}
+      <strong class="match-score big">{{ event_status_titles[registration.status] }}</strong>
+      <p class="muted">Заявка создана {{ registration.created_at.strftime('%d.%m.%Y %H:%M') }}</p>
+      <p>{{ registration.note or 'Без комментария для организатора.' }}</p>
+    {% else %}
+      <strong class="match-score big">Открыто</strong>
+      <p class="muted">Мероприятие доступно для регистрации через карточку.</p>
+    {% endif %}
+    <h3>Что отличается от вакансии</h3>
+    <ul class="clean-list">
+      <li>У события свои даты, площадка, вместимость и дедлайн регистрации.</li>
+      <li>Вместо отклика работает регистрация участника.</li>
+      <li>HR видит список зарегистрированных, а не ATS-канбан кандидатов.</li>
+    </ul>
+  </aside>
+</section>
+{% endblock %}

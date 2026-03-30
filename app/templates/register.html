@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+{% block title %}Регистрация — Трамплин{% endblock %}
+{% block content %}
+<section class="auth-wrapper">
+  <div class="auth-card glass wide">
+    <span class="eyebrow">Создайте роль на платформе</span>
+    <h1>Регистрация</h1>
+    <p class="lead">Регистрация проходит в один шаг: заполните форму и сразу переходите ко входу в кабинет.</p>
+
+    <div class="register-intro-grid">
+      <div class="mini-card">
+        <strong>Соискатель</strong>
+        <p>Регистрируется мгновенно и сразу получает доступ к личному кабинету.</p>
+      </div>
+      <div class="mini-card accent-card">
+        <strong>Работодатель / HR</strong>
+        <p>После отправки формы кабинет работодателя создаётся сразу, без промежуточного шага с подтверждением по почте.</p>
+      </div>
+    </div>
+
+    <form method="post" class="stack-form grid-two" id="registerForm">
+      <label>Роль
+        <select name="role" id="roleSelect" required>
+          <option value="">Выберите роль</option>
+          <option value="student">Соискатель</option>
+          <option value="employer">Работодатель / HR</option>
+        </select>
+      </label>
+
+      <label>Отображаемое имя
+        <input type="text" name="display_name" required>
+      </label>
+
+      <label>Email
+        <input type="email" name="email" required>
+      </label>
+
+      <label>Пароль
+        <input type="password" name="password" minlength="8" required>
+      </label>
+
+      <div id="studentFields" class="role-fields grid-two-inline">
+        <label>Город
+          <input type="text" name="city" value="Москва">
+        </label>
+        <label>ВУЗ
+          <input type="text" name="university" placeholder="МГТУ им. Баумана">
+        </label>
+        <label>Год выпуска
+          <input type="number" name="graduation_year" value="2027">
+        </label>
+        <label>Курс / статус
+          <input type="text" name="course" value="1 курс">
+        </label>
+      </div>
+
+      <div id="employerFields" class="role-fields grid-two-inline">
+        <div class="role-callout" style="grid-column:1/-1">
+          <strong>Как работает регистрация работодателя</strong>
+          <ol>
+            <li>Вы заполняете данные профиля и компании.</li>
+            <li>Платформа сразу создаёт кабинет работодателя.</li>
+            <li>Данные компании можно дополнить и отредактировать уже внутри кабинета.</li>
+          </ol>
+        </div>
+
+        <label>Город
+          <input type="text" name="city" value="Москва">
+        </label>
+        <label>Режим регистрации компании
+          <select name="company_mode" id="companyModeSelect">
+            <option value="create">Создать новую компанию</option>
+            <option value="join">Присоединиться к существующей</option>
+          </select>
+        </label>
+        <label>Роль в компании
+          <input type="text" name="hr_title" value="HR manager">
+        </label>
+        <label>Компания
+          <input type="text" name="company_name" placeholder="ООО Ромашка">
+        </label>
+        <label>ИНН компании
+          <input type="text" name="inn" placeholder="7707083893">
+        </label>
+        <label id="industryField">Сфера деятельности
+          <input type="text" name="industry" value="IT">
+        </label>
+        <label id="websiteField">Сайт компании
+          <input type="text" name="website" placeholder="https://company.example">
+        </label>
+        <label id="addressField" style="grid-column:1/-1">Адрес офиса
+          <input type="text" name="office_address" placeholder="Москва, Пресненская наб., 10">
+        </label>
+        <div class="form-hint-card" style="grid-column:1/-1">
+          <strong>Логика привязки HR к компании</strong>
+          <p>Если вы выбираете «Присоединиться к существующей», система ищет компанию по ИНН. При совпадении рабочей почты с доменом компании привязка подтверждается автоматически, иначе заявка уходит куратору.</p>
+        </div>
+      </div>
+
+      <button type="submit" class="btn primary full" id="registerButton" style="grid-column:1/-1">Создать аккаунт</button>
+    </form>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  const roleSelect = document.getElementById('roleSelect');
+  const companyModeSelect = document.getElementById('companyModeSelect');
+  const studentFields = document.getElementById('studentFields');
+  const employerFields = document.getElementById('employerFields');
+  const industryField = document.getElementById('industryField');
+  const websiteField = document.getElementById('websiteField');
+  const addressField = document.getElementById('addressField');
+  const button = document.getElementById('registerButton');
+
+  function toggleSection(section, isVisible) {
+    section.style.display = isVisible ? 'grid' : 'none';
+    section.querySelectorAll('input, select, textarea').forEach((field) => {
+      field.disabled = !isVisible;
+    });
+  }
+
+  function updateFields() {
+    const role = roleSelect.value;
+    toggleSection(studentFields, role === 'student');
+    toggleSection(employerFields, role === 'employer');
+    button.textContent = role === 'employer' ? 'Создать кабинет работодателя' : 'Создать аккаунт';
+    updateCompanyMode();
+  }
+
+  function toggleFieldGroup(field, isVisible) {
+    if (!field) return;
+    field.style.display = isVisible ? 'grid' : 'none';
+    field.querySelectorAll('input, select, textarea').forEach((input) => {
+      input.disabled = !isVisible;
+    });
+  }
+
+  function updateCompanyMode() {
+    if (!companyModeSelect || employerFields.style.display === 'none') return;
+    const isJoin = companyModeSelect.value === 'join';
+    toggleFieldGroup(industryField, !isJoin);
+    toggleFieldGroup(websiteField, !isJoin);
+    toggleFieldGroup(addressField, !isJoin);
+  }
+
+  roleSelect.addEventListener('change', updateFields);
+  if (companyModeSelect) {
+    companyModeSelect.addEventListener('change', updateCompanyMode);
+  }
+  updateFields();
+});
+</script>
+{% endblock %}

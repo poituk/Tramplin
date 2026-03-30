@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}{{ opportunity.title }} — Трамплин{% endblock %}
+{% block content %}
+<section class="detail-hero glass">
+  <div>
+    <div class="chip-row">
+      <span class="pill {{ opportunity.opportunity_type }}">{{ type_labels.get(opportunity.opportunity_type, opportunity.opportunity_type) }}</span>
+      <span class="chip">{{ format_labels.get(opportunity.work_format, opportunity.work_format) }}</span>
+      <span class="chip">{{ opportunity.city }}</span>
+    </div>
+    <h1>{{ opportunity.title }}</h1>
+    <p>{{ opportunity.employer.company_name }} · {{ opportunity.address }}</p>
+    <p class="lead">{{ opportunity.short_description }}</p>
+    <div class="tag-row">
+      {% for tag in opportunity.tags %}<span class="tag">{{ tag.name }}</span>{% endfor %}
+    </div>
+  </div>
+  <div class="salary-card">
+    <strong>{% if opportunity.salary_max %}{{ '{:,.0f}'.format(opportunity.salary_min).replace(',', ' ') }}–{{ '{:,.0f}'.format(opportunity.salary_max).replace(',', ' ') }} ₽{% else %}Без оплаты / карьерная активность{% endif %}</strong>
+    <span>Опубликовано: {{ opportunity.published_on.strftime('%d.%m.%Y') }}</span>
+    <span>Активно до: {{ opportunity.expires_on.strftime('%d.%m.%Y') if opportunity.expires_on else '—' }}</span>
+  </div>
+</section>
+
+<section class="detail-grid">
+  <article class="glass detail-card">
+    <h2>Что внутри</h2>
+    <p>{{ opportunity.short_description }}</p>
+    <ul class="clean-list">
+      <li><strong>Работодатель:</strong> {{ opportunity.employer.company_name }}</li>
+      <li><strong>Тип:</strong> {{ type_labels.get(opportunity.opportunity_type, opportunity.opportunity_type) }}</li>
+      <li><strong>Формат:</strong> {{ format_labels.get(opportunity.work_format, opportunity.work_format) }}</li>
+      <li><strong>Локация:</strong> {{ opportunity.address }}</li>
+      <li><strong>Контакты:</strong> {{ opportunity.employer.website or 'в профиле компании' }}</li>
+    </ul>
+    {% if current_user.is_authenticated and current_user.role == 'student' %}
+    <form method="post" action="{{ url_for('apply', opportunity_id=opportunity.id) }}" class="inline-form">
+      <button class="btn primary" name="status" value="applied">Откликнуться</button>
+      <button class="btn ghost" name="status" value="wishlist">Сохранить</button>
+    </form>
+    {% endif %}
+  </article>
+
+  {% if match_info %}
+  <aside class="glass detail-card accent-border">
+    <h2>Ваш матч</h2>
+    <strong class="match-score big">{{ match_info.score }}%</strong>
+    <p class="muted">Потенциал после доработки профиля: {{ match_info.potential_score }}%</p>
+    <h3>Совпадения</h3>
+    <div class="tag-row">{% for skill in match_info.overlap %}<span class="tag success">{{ skill }}</span>{% endfor %}</div>
+    <h3>Пробелы</h3>
+    <div class="tag-row">{% for skill in match_info.missing_skills %}<span class="tag danger">{{ skill }}</span>{% endfor %}</div>
+    <ul class="clean-list">
+      {% for item in match_info.recommendations %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+  </aside>
+  {% endif %}
+</section>
+{% endblock %}
